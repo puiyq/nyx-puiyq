@@ -6,7 +6,7 @@ pull_request_rules:
           - author=github-actions[bot]
           - label=auto_bump
           - label=github_actions
-          # - check-success=flake check
+          - check-success=flake check
     actions:
       update:
       merge:
