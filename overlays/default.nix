@@ -420,6 +420,8 @@ in
 
   wlroots_git = callOverride ../pkgs/wlroots-git { };
 
+  yazi_git = callOverride ../pkgs/yazi-git { };
+
   yt-dlp_git = callOverride ../pkgs/yt-dlp-git { };
 
   zed-editor_git = callOverride ../pkgs/zed-editor-git {
