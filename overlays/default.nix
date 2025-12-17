@@ -13,8 +13,6 @@
   nixpkgs ? flakes.nixpkgs,
   self ? flakes.self,
   selfOverlay ? self.overlays.default,
-  jovian ? flakes.jovian,
-  rust-overlay ? flakes.rust-overlay,
   nixpkgsExtraConfig ? { },
 }:
 final: prev:
@@ -28,7 +26,7 @@ let
     inherit (final) lib;
     nyxOverlay = selfOverlay;
   };
-  inherit (nyxUtils) multiOverride overrideDescription drvDropUpdateScript;
+  inherit (nyxUtils) drvDropUpdateScript;
 
   # Helps when calling .nix that will override packages.
   callOverride =
@@ -41,7 +39,6 @@ let
           nyxUtils
           prev
           gitOverride
-          rustPlatform_latest
           ;
       }
       // attrs
@@ -76,14 +73,6 @@ let
     fetchRevFromGitea = final.callPackage ../shared/gitea-rev-fetcher.nix { };
   };
 
-  rustc_latest = rust-overlay.packages.${final.stdenv.hostPlatform.system}.rust;
-
-  # Latest rust toolchain from Fenix
-  rustPlatform_latest = final.makeRustPlatform {
-    cargo = rustc_latest;
-    rustc = rustc_latest;
-  };
-
   # Too much variations
   cachyosPackages = callOverride ../pkgs/linux-cachyos { };
 
@@ -100,110 +89,19 @@ let
   # Required for 32-bit packages
   has32 = final.stdenv.hostPlatform.isLinux && final.stdenv.hostPlatform.isx86;
 
-  # Required for kernel packages
-  inherit (final.stdenv) isLinux;
-
-  # Apply Jovian overlay only on x86_64-linux
-  jovian-chaotic =
-    if final.stdenv.hostPlatform.isLinux && final.stdenv.hostPlatform.isx86_64 then
-      let
-        base = nyxUtils.applyOverlay {
-          overlay = jovian.overlays.default;
-          replace = true;
-          pkgs = prev;
-        };
-      in
-      (builtins.removeAttrs base [ "jovian-documentation" ])
-      // {
-        recurseForDerivations = true;
-        linuxPackages_jovian = base.linuxPackages_jovian // {
-          recurseForDerivations = false;
-        };
-      }
-    else
-      { };
 in
 {
-  inherit nyxUtils jovian-chaotic rustc_latest;
+  inherit nyxUtils;
 
   nyx-generic-git-update = final.callPackage ../pkgs/nyx-generic-git-update { };
 
-  alacritty_git = callOverride ../pkgs/alacritty-git { };
-
   ananicy-rules-cachyos_git = callOverride ../pkgs/ananicy-cpp-rules { };
 
-  applet-window-title = final.callPackage ../pkgs/applet-window-title { };
-
-  appmenu-gtk3-module = final.callPackage ../pkgs/appmenu-gtk3-module { };
-
-  beautyline-icons = final.callPackage ../pkgs/beautyline-icons { };
-
-  bees_git = callOverride ../pkgs/bees-git { };
-
-  bpftools_full =
-    if isLinux then
-      final.callPackage ../pkgs/bpftools-full { }
-    else
-      throw "No bpftools for your target";
-
-  busybox_appletless = multiOverride prev.busybox { enableAppletSymlinks = false; } (
-    overrideDescription (old: old + " (without applets' symlinks)")
-  );
-
-  bytecode-viewer_git = final.callPackage ../pkgs/bytecode-viewer-git { };
-
-  discord-krisp = callOverride ../pkgs/discord-krisp { };
-
-  distrobox_git = callOverride ../pkgs/distrobox-git { };
-
-  dr460nized-kde-theme = final.callPackage ../pkgs/dr460nized-kde-theme { };
-
-  evil-helix_git = callOverride ../pkgs/helix-git { evil = true; };
-
-  fetchTorGit = callOverride ../pkgs/fetchtorgit { };
-
-  firedragon-bin-unwrapped = final.callPackage ../pkgs/firedragon-bin { };
-  firedragon-bin = final.wrapFirefox final.firedragon-bin-unwrapped {
-    pname = "firedragon-bin";
-    extraPoliciesFiles = [
-      "${final.firedragon-bin-unwrapped}/lib/firedragon-bin-${final.firedragon-bin-unwrapped.version}/distribution/policies.json"
-    ];
-  };
-
-  firedragon-catppuccin-bin-unwrapped = final.callPackage ../pkgs/firedragon-catppuccin-bin { };
-  firedragon-catppuccin-bin = final.wrapFirefox final.firedragon-catppuccin-bin-unwrapped {
-    pname = "firedragon-catppuccin-bin";
-    extraPoliciesFiles = [
-      "${final.firedragon-catppuccin-bin-unwrapped}/lib/firedragon-catppuccin-bin-${final.firedragon-catppuccin-bin-unwrapped.version}/distribution/policies.json"
-    ];
-  };
-
-  firefox-unwrapped_nightly = final.callPackage ../pkgs/firefox-nightly { };
-  firefox_nightly = final.wrapFirefox final.firefox-unwrapped_nightly { };
-
-  gamescope_git = callOverride ../pkgs/gamescope-git { };
-  gamescope-wsi_git = callOverride ../pkgs/gamescope-git { isWSI = true; };
-  gamescope-wsi32_git =
-    if has32 then
-      callOverride32 ../pkgs/gamescope-git { isWSI = true; }
-    else
-      throw "No gamescope-wsi32_git for non-x86";
-
-  helix_git = callOverride ../pkgs/helix-git { };
-
   jujutsu_git = callOverride ../pkgs/jujutsu-git { };
-
-  lan-mouse_git = callOverride ../pkgs/lan-mouse-git { };
-
-  latencyflex-vulkan = final.callPackage ../pkgs/latencyflex-vulkan { };
-
-  libbpf_git = callOverride ../pkgs/libbpf-git { };
 
   libdrm_git = callOverride ../pkgs/libdrm-git { };
   libdrm32_git =
     if has32 then callOverride32 ../pkgs/libdrm-git { } else throw "No libdrm32_git for non-x86";
-
-  libportal_git = callOverride ../pkgs/libportal-git { };
 
   linux_cachyos = drvDropUpdateScript cachyosPackages.cachyos-gcc.kernel;
   linux_cachyos-lto = drvDropUpdateScript cachyosPackages.cachyos-lto.kernel;
@@ -223,52 +121,9 @@ in
   linuxPackages_cachyos-rc = cachyosPackages.cachyos-rc;
   linuxPackages_cachyos-lts = cachyosPackages.cachyos-lts;
 
-  luxtorpeda = final.callPackage ../pkgs/luxtorpeda {
-    luxtorpedaVersion = importJSON ../pkgs/luxtorpeda/version.json;
-  };
-
-  # You should not need "mangohud32_git" since it's embedded in "mangohud_git"
-  mangohud_git = callOverride ../pkgs/mangohud-git { };
-  mangohud32_git =
-    if has32 then callOverride32 ../pkgs/mangohud-git { } else throw "No mangohud32_git for non-x86";
-
   mesa_git = callOverride ../pkgs/mesa-git { };
   mesa32_git =
     if has32 then callOverride32 ../pkgs/mesa-git { } else throw "No mesa32_git for non-x86";
-
-  mpv-vapoursynth =
-    (final.mpv-unwrapped.wrapper {
-      mpv = final.mpv-unwrapped.override {
-        vapoursynthSupport = true;
-        vapoursynth = final.vapoursynth.withPlugins [ final.vapoursynth-mvtools ];
-      };
-    }).overrideAttrs
-      (overrideDescription (old: old + " (includes vapoursynth-mvtools)"));
-
-  mwc_git = callOverride ../pkgs/mwc-git { };
-
-  niri_git = callOverride ../pkgs/niri-git {
-    niriPins = importJSON ../pkgs/niri-git/pins.json;
-  };
-
-  nix_git = callOverride ../pkgs/nix-git { };
-
-  nix-top_abandoned = final.callPackage ../pkgs/nix-top { };
-
-  nordvpn = final.callPackage ../pkgs/nordvpn { };
-
-  nss_git = callOverride ../pkgs/nss-git { };
-
-  openmohaa = final.callPackage ../pkgs/openmohaa {
-    openmohaaVersion = importJSON ../pkgs/openmohaa/version.json;
-  };
-  openmohaa_git = callOverride ../pkgs/openmohaa-git { };
-
-  openrgb_git = final.callPackage ../pkgs/openrgb-git { };
-
-  openvr_git = callOverride ../pkgs/openvr-git { };
-
-  pcsx2_git = callOverride ../pkgs/pcsx2-git { };
 
   pkgsx86_64_v2 = final.pkgsAMD64Microarchs.x86-64-v2;
   pkgsx86_64_v3 = final.pkgsAMD64Microarchs.x86-64-v3;
@@ -316,30 +171,6 @@ in
     versionFilename = "cachyos-v4-version.json";
   };
 
-  proton-cachyos_nightly_x86_64_v3 = final.proton-cachyos.override {
-    toolTitle = "Proton-CachyOS Nightly x86-64-v3";
-    tarballSuffix = "-x86_64_v3.tar.xz";
-    url = "https://nightly.link/CachyOS/proton-cachyos/actions/runs/19506926176/proton-cachyos-10.0-20251112-base-131-g471736d4-x86_64_v3.tar.xz.zip";
-    version = {
-      base = "10.0";
-      release = "20251112";
-      hash = "sha256-3wkekFESoLgVYdCvMSEWL6nBRytsScUrwpn7zzNLqYE=";
-    };
-    withUpdateScript = false;
-  };
-
-  proton-cachyos_nightly_x86_64_v4 = final.proton-cachyos.override {
-    toolTitle = "Proton-CachyOS Nightly x86-64-v4";
-    tarballSuffix = "-x86_64_v4.tar.xz";
-    url = "https://nightly.link/CachyOS/proton-cachyos/actions/runs/19506926176/proton-cachyos-10.0-20251112-base-131-g471736d4-x86_64_v4.tar.xz.zip";
-    version = {
-      base = "10.0";
-      release = "20251112";
-      hash = "sha256-0dmK5HnFyN/V1aicCkRiubVkAtW1X1XJZTVljhuWn1w=";
-    };
-    withUpdateScript = false;
-  };
-
   proton-ge-custom = final.callPackage ../pkgs/proton-bin {
     toolTitle = "Proton-GE";
     tarballSuffix = ".tar.gz";
@@ -355,77 +186,11 @@ in
     pwvucontrolPins = importJSON ../pkgs/pwvucontrol-git/pins.json;
   };
 
-  qtile_git = with final; python311Packages.toPythonApplication qtile-module_git;
-  qtile-module_git = callOverride ../pkgs/qtile-git { };
-  qtile-extras_git = callOverride ../pkgs/qtile-extras-git { };
-
-  river_git = callOverride ../pkgs/river-git { };
-
-  rustc_nightly = rust-overlay.packages.${final.stdenv.hostPlatform.system}.rust-nightly;
-
-  sdl_git = callOverride ../pkgs/sdl-git { };
-
-  shadps4_git = callOverride ../pkgs/shadps4-git { };
-
-  spirv-headers_git = callOverride ../pkgs/spirv-headers-git { };
-
-  scenefx_0_2 = multiOverride prev.scenefx { wlroots_0_19 = final.wlroots_0_18; } (_prevAttrs: rec {
-    version = "0.2.1";
-    src = final.fetchFromGitHub {
-      owner = "wlrfx";
-      repo = "scenefx";
-      tag = version;
-      hash = "sha256-BLIADMQwPJUtl6hFBhh5/xyYwLFDnNQz0RtgWO/Ua8s=";
-    };
-  });
-
-  # temporary fix:
-  scx_git = final.lib.warn "scx_git no longer is maintained and is an alias of scx from Nixpkgs." (
-    final.lib.dontRecurseIntoAttrs final.scx
-  );
-
-  scx-full_git = drvDropUpdateScript final.scx_git.full;
-
-  sway-unwrapped_git = callOverride ../pkgs/sway-unwrapped-git { };
-  sway_git = prev.sway.override {
-    sway-unwrapped = final.sway-unwrapped_git;
-  };
-
-  swaylock-plugin_git = callOverride ../pkgs/swaylock-plugin-git { };
-
-  tde2e_git = callOverride ../pkgs/tdlib-git/tde2e.nix { };
-  tdlib_git = callOverride ../pkgs/tdlib-git { };
-  telegram-desktop-unwrapped_git = callOverride ../pkgs/telegram-desktop-git { };
-  telegram-desktop_git = final.telegram-desktop.override {
-    unwrapped = final.telegram-desktop-unwrapped_git;
-  };
-  tg-owt_git = callOverride ../pkgs/tg-owt-git { };
-
-  torzu_git = final.kdePackages.callPackage ../pkgs/torzu-git {
-    current = importJSON ../pkgs/torzu-git/version.json;
-    inherit (final) fetchTorGit;
-  };
-
-  vulkanPackages_latest = callOverride ../pkgs/vulkan-versioned {
-    vulkanVersions = importJSON ../pkgs/vulkan-versioned/latest.json;
-  };
-
-  xdg-desktop-portal-wlr_git = callOverride ../pkgs/portal-wlr-git { };
-
   wayland_git = callOverride ../pkgs/wayland-git { };
   wayland-protocols_git = callOverride ../pkgs/wayland-protocols-git { };
   wayland-scanner_git = prev.wayland-scanner.overrideAttrs (_: {
     inherit (final.wayland_git) src;
   });
-
-  wlroots_git = callOverride ../pkgs/wlroots-git { };
-
-  yt-dlp_git = callOverride ../pkgs/yt-dlp-git { };
-
-  zed-editor_git = callOverride ../pkgs/zed-editor-git {
-    zedPins = importJSON ../pkgs/zed-editor-git/pins.json;
-  };
-  zed-editor-fhs_git = final.zed-editor_git.fhs;
 
   zfs_cachyos = cachyosPackages.zfs;
 }

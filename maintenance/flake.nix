@@ -2,11 +2,10 @@
   inputs = {
     chaotic.url = "../";
     compare-to.url = "../";
-    systems.url = "github:nix-systems/default";
     yafas = {
       url = "github:UbiqueLambda/yafas";
-      inputs.systems.follows = "systems";
-      inputs.flake-schemas.follows = "chaotic/flake-schemas";
+      inputs.systems.url = "github:nix-systems/default";
+      inputs.flake-schemas.url = "https://flakehub.com/f/DeterminateSystems/flake-schemas/=0.1.5.tar.gz";
     };
   };
   outputs =

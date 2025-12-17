@@ -36,21 +36,6 @@ flakes.yafas.withAllSystems { }
           { boot.isContainer = true; }
         ];
       };
-      readOnlySystem = flakes.nixpkgs.lib.nixosSystem {
-        modules = [
-          {
-            nixpkgs.pkgs = import flakes.nixpkgs {
-              inherit system;
-              config = nixPkgsConfig;
-              overlays = [ self.overlays.cache-friendly ];
-            };
-            chaotic.nyx.overlay.enable = false;
-            boot.isContainer = true;
-          }
-          flakes.nixpkgs.nixosModules.readOnlyPkgs
-          self.nixosModules.default
-        ];
-      };
     }
   )
   {

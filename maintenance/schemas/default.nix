@@ -6,7 +6,6 @@
   inherit (flake-schemas.schemas)
     devShells
     formatter
-    homeModules
     legacyPackages
     nixosModules
     overlays
@@ -23,7 +22,6 @@
       what = "attrset";
     };
   };
-  homeManagerModules = flake-schemas.schemas.homeModules;
   unrestrictedPackages = {
     version = 1;
     doc = ''

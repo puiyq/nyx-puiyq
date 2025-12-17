@@ -1,8 +1,6 @@
 {
   flakes,
-  homeManagerModules ? self.homeManagerModules,
   nixpkgs ? flakes.nixpkgs,
-  home-manager ? flakes.home-manager,
   packages ? self._dev.legacyPackages,
   self ? flakes.self,
   nyxosConfiguration ? self._dev.system.x86_64-linux,
@@ -56,14 +54,12 @@ let
       };
       documentation = callPackage ../tools/document {
         allPackages = nyxPkgs;
-        homeManagerModule = homeManagerModules.default;
         inherit
           nixpkgs
           nyxRecursionHelper
           self
           nyxosConfiguration
           ;
-        inherit (home-manager.lib) homeManagerConfiguration;
       };
       evaluated = callPackage ../tools/eval {
         allPackages = nyxPkgs;
