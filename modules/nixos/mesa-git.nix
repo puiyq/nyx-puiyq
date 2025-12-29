@@ -25,10 +25,10 @@ let
   commonConfig = {
     hardware.graphics = with lib; {
       enable = mkForce true;
-      package = mkForce pkgs.mesa_git;
-      package32 = mkForce pkgs.mesa32_git;
-      extraPackages = mkForce cfg.extraPackages;
-      extraPackages32 = mkForce cfg.extraPackages32;
+      package = pkgs.mesa_git;
+      package32 = pkgs.mesa32_git;
+      extraPackages = cfg.extraPackages;
+      extraPackages32 = cfg.extraPackages32;
       enable32Bit = mkForce has32;
     };
   };
