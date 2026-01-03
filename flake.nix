@@ -4,6 +4,11 @@
   inputs = {
     # For all users
     nixpkgs.url = "github:NixOS/nixpkgs/nixos-unstable";
+
+    rust-overlay = {
+      url = "github:oxalica/rust-overlay";
+      inputs.nixpkgs.follows = "nixpkgs";
+    };
   };
 
   outputs =

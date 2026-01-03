@@ -13,6 +13,7 @@
   nixpkgs ? flakes.nixpkgs,
   self ? flakes.self,
   selfOverlay ? self.overlays.default,
+  rust-overlay ? flakes.rust-overlay,
   nixpkgsExtraConfig ? { },
 }:
 final: prev:
@@ -39,6 +40,7 @@ let
           nyxUtils
           prev
           gitOverride
+          rustPlatform_latest
           ;
       }
       // attrs
@@ -73,6 +75,13 @@ let
     fetchRevFromGitea = final.callPackage ../shared/gitea-rev-fetcher.nix { };
   };
 
+  rustc_latest = rust-overlay.packages.${final.stdenv.hostPlatform.system}.rust;
+
+  rustPlatform_latest = final.makeRustPlatform {
+    cargo = rustc_latest;
+    rustc = rustc_latest;
+  };
+
   # Too much variations
   cachyosPackages = callOverride ../pkgs/linux-cachyos { };
 
@@ -91,7 +100,7 @@ let
 
 in
 {
-  inherit nyxUtils;
+  inherit nyxUtils rustc_latest;
 
   nyx-generic-git-update = final.callPackage ../pkgs/nyx-generic-git-update { };
 
@@ -130,7 +139,7 @@ in
   pkgsx86_64_v4 = final.pkgsAMD64Microarchs.x86-64-v4;
 
   pkgsAMD64Microarchs = builtins.mapAttrs (arch: _inferiors: makeMicroarchPkgs "x86_64" arch) (
-    builtins.removeAttrs final.lib.systems.architectures.inferiors [
+    removeAttrs final.lib.systems.architectures.inferiors [
       "default"
       "armv5te"
       "armv6"
@@ -191,6 +200,12 @@ in
   wayland-scanner_git = prev.wayland-scanner.overrideAttrs (_: {
     inherit (final.wayland_git) src;
   });
+
+  zed-editor_git = callOverride ../pkgs/zed-editor-git {
+    zedPins = importJSON ../pkgs/zed-editor-git/pins.json;
+  };
+
+  zed-editor-fhs_git = final.zed-editor_git.fhs;
 
   zfs_cachyos = cachyosPackages.zfs;
 }
