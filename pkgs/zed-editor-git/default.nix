@@ -34,6 +34,7 @@ gitOverride (current: {
         );
 
     # Nothing wrong on it, just saving compilation time for me!
+    checkPhase='''';
     doCheck = false;
     doInstallCheck = false;
   };
