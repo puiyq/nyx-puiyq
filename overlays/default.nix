@@ -13,7 +13,6 @@
   nixpkgs ? flakes.nixpkgs,
   self ? flakes.self,
   selfOverlay ? self.overlays.default,
-  rust-overlay ? flakes.rust-overlay,
   nixpkgsExtraConfig ? { },
 }:
 final: prev:
@@ -40,7 +39,6 @@ let
           nyxUtils
           prev
           gitOverride
-          rustPlatform_latest
           ;
       }
       // attrs
@@ -75,13 +73,6 @@ let
     fetchRevFromGitea = final.callPackage ../shared/gitea-rev-fetcher.nix { };
   };
 
-  rustc_latest = rust-overlay.packages.${final.stdenv.hostPlatform.system}.rust;
-
-  rustPlatform_latest = final.makeRustPlatform {
-    cargo = rustc_latest;
-    rustc = rustc_latest;
-  };
-
   # Too much variations
   cachyosPackages = callOverride ../pkgs/linux-cachyos { };
 
@@ -100,39 +91,13 @@ let
 
 in
 {
-  inherit nyxUtils rustc_latest;
+  inherit nyxUtils;
 
   nyx-generic-git-update = final.callPackage ../pkgs/nyx-generic-git-update { };
 
-  ananicy-rules-cachyos_git = callOverride ../pkgs/ananicy-cpp-rules { };
-
-  jujutsu_git = callOverride ../pkgs/jujutsu-git { };
-
-  libdrm_git = callOverride ../pkgs/libdrm-git { };
-  libdrm32_git =
-    if has32 then callOverride32 ../pkgs/libdrm-git { } else throw "No libdrm32_git for non-x86";
-
-  linux_cachyos = drvDropUpdateScript cachyosPackages.cachyos-gcc.kernel;
-  linux_cachyos-lto = drvDropUpdateScript cachyosPackages.cachyos-lto.kernel;
   linux_cachyos-lto-znver4 = drvDropUpdateScript cachyosPackages.cachyos-lto-znver4.kernel;
-  linux_cachyos-gcc = drvDropUpdateScript cachyosPackages.cachyos-gcc.kernel;
-  linux_cachyos-server = drvDropUpdateScript cachyosPackages.cachyos-server.kernel;
-  linux_cachyos-hardened = drvDropUpdateScript cachyosPackages.cachyos-hardened.kernel;
-  linux_cachyos-rc = cachyosPackages.cachyos-rc.kernel;
-  linux_cachyos-lts = cachyosPackages.cachyos-lts.kernel;
 
-  linuxPackages_cachyos = cachyosPackages.cachyos-gcc;
-  linuxPackages_cachyos-lto = cachyosPackages.cachyos-lto;
   linuxPackages_cachyos-lto-znver4 = cachyosPackages.cachyos-lto-znver4;
-  linuxPackages_cachyos-gcc = cachyosPackages.cachyos-gcc;
-  linuxPackages_cachyos-server = cachyosPackages.cachyos-server;
-  linuxPackages_cachyos-hardened = cachyosPackages.cachyos-hardened;
-  linuxPackages_cachyos-rc = cachyosPackages.cachyos-rc;
-  linuxPackages_cachyos-lts = cachyosPackages.cachyos-lts;
-
-  mesa_git = callOverride ../pkgs/mesa-git { };
-  mesa32_git =
-    if has32 then callOverride32 ../pkgs/mesa-git { } else throw "No mesa32_git for non-x86";
 
   pkgsx86_64_v2 = final.pkgsAMD64Microarchs.x86-64-v2;
   pkgsx86_64_v3 = final.pkgsAMD64Microarchs.x86-64-v3;
@@ -150,62 +115,15 @@ in
     ]
   );
 
-  proton-cachyos = final.callPackage ../pkgs/proton-bin {
-    toolTitle = "Proton-CachyOS";
+  proton-cachyos_x86_64_v3 = final.callPackage ../pkgs/proton-bin {
+    toolTitle = "Proton-CachyOS x86-64-v3";
     tarballPrefix = "proton-";
-    tarballSuffix = "-x86_64.tar.xz";
+    tarballSuffix = "-x86_64_v3.tar.xz";
     toolPattern = "proton-cachyos-.*";
     releasePrefix = "cachyos-";
     releaseSuffix = "-slr";
-    versionFilename = "cachyos-version.json";
+    versionFilename = "cachyos-v3-version.json";
     owner = "CachyOS";
     repo = "proton-cachyos";
   };
-
-  proton-cachyos_x86_64_v2 = final.proton-cachyos.override {
-    toolTitle = "Proton-CachyOS x86-64-v2";
-    tarballSuffix = "-x86_64_v2.tar.xz";
-    versionFilename = "cachyos-v2-version.json";
-  };
-
-  proton-cachyos_x86_64_v3 = final.proton-cachyos.override {
-    toolTitle = "Proton-CachyOS x86-64-v3";
-    tarballSuffix = "-x86_64_v3.tar.xz";
-    versionFilename = "cachyos-v3-version.json";
-  };
-
-  proton-cachyos_x86_64_v4 = final.proton-cachyos.override {
-    toolTitle = "Proton-CachyOS x86-64-v4";
-    tarballSuffix = "-x86_64_v4.tar.xz";
-    versionFilename = "cachyos-v4-version.json";
-  };
-
-  proton-ge-custom = final.callPackage ../pkgs/proton-bin {
-    toolTitle = "Proton-GE";
-    tarballSuffix = ".tar.gz";
-    toolPattern = "GE-Proton.*";
-    releasePrefix = "GE-Proton";
-    releaseSuffix = "";
-    versionFilename = "ge-version.json";
-    owner = "GloriousEggroll";
-    repo = "proton-ge-custom";
-  };
-
-  pwvucontrol_git = callOverride ../pkgs/pwvucontrol-git {
-    pwvucontrolPins = importJSON ../pkgs/pwvucontrol-git/pins.json;
-  };
-
-  wayland_git = callOverride ../pkgs/wayland-git { };
-  wayland-protocols_git = callOverride ../pkgs/wayland-protocols-git { };
-  wayland-scanner_git = prev.wayland-scanner.overrideAttrs (_: {
-    inherit (final.wayland_git) src;
-  });
-
-  zed-editor_git = callOverride ../pkgs/zed-editor-git {
-    zedPins = importJSON ../pkgs/zed-editor-git/pins.json;
-  };
-
-  zed-editor-fhs_git = final.zed-editor_git.fhs;
-
-  zfs_cachyos = cachyosPackages.zfs;
 }
