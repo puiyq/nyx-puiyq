@@ -1,7 +1,6 @@
 builds:
   include:
     - "packages.x86_64-linux.linux_cachyos-lto-znver4"
-    - "packages.x86_64-linux.ananicy-rules-cachyos_git"
     - "packages.x86_64-linux.proton-cachyos_x86_64_v4"
     
   exclude: []
